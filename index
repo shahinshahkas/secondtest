@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<title>KAS Posting Dashboard</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/countup.js@2.0.7/dist/countUp.umd.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f6f8;
+margin:30px;
+}
+
+h1{
+text-align:center;
+margin-bottom:30px;
+}
+
+.dashboard{
+display:flex;
+flex-wrap:wrap;
+gap:20px;
+justify-content:center;
+margin-bottom:40px;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+width:200px;
+text-align:center;
+}
+
+.counter{
+font-size:28px;
+font-weight:bold;
+margin-top:10px;
+}
+
+.charts{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:30px;
+margin-bottom:40px;
+}
+
+.chartCard{
+background:white;
+padding:20px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+.searchBox{
+text-align:center;
+margin-bottom:20px;
+}
+
+input{
+padding:10px;
+width:300px;
+font-size:16px;
+}
+
+.postCard{
+background:white;
+padding:15px;
+margin-bottom:10px;
+border-radius:6px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>KAS Posting Intelligence Dashboard</h1>
+
+<div class="dashboard">
+
+<div class="card">
+Total Posts
+<div class="counter" id="total"></div>
+</div>
+
+<div class="card">
+Filled
+<div class="counter" id="filled"></div>
+</div>
+
+<div class="card">
+Vacant
+<div class="counter" id="vacant"></div>
+</div>
+
+<div class="card">
+Departments
+<div class="counter" id="departments"></div>
+</div>
+
+</div>
+
+<div class="charts">
+
+<div class="chartCard">
+<canvas id="statusChart"></canvas>
+</div>
+
+<div class="chartCard">
+<canvas id="cadreChart"></canvas>
+</div>
+
+</div>
+
+<div class="searchBox">
+
+<input id="search" placeholder="Search post name">
+
+</div>
+
+<div id="results"></div>
+
+<script>
+
+let dataset=[]
+
+fetch("https://opensheet.elk.sh/17DTRZUbVyZN7dA7wSsmNSTlR97OTRsUhgS9_ITAVV7A/data")
+
+.then(res=>res.json())
+
+.then(data=>{
+
+dataset=data
+
+buildDashboard(data)
+
+display(data)
+
+})
+
+function buildDashboard(data){
+
+let total=data.length
+
+let filled=data.filter(r=>r["Present Status"]=="Filled").length
+let vacant=data.filter(r=>r["Present Status"]=="Vacant").length
+
+let dept=[...new Set(data.map(r=>r["Name of Department"]))].length
+
+new countUp.CountUp("total",total).start()
+new countUp.CountUp("filled",filled).start()
+new countUp.CountUp("vacant",vacant).start()
+new countUp.CountUp("departments",dept).start()
+
+new Chart(document.getElementById("statusChart"),{
+
+type:"pie",
+
+data:{
+labels:["Filled","Vacant"],
+datasets:[{
+data:[filled,vacant]
+}]
+}
+
+})
+
+let cadre={}
+data.forEach(r=>{
+
+let c=r["Cadre/Non-cadre"]
+
+if(!cadre[c]) cadre[c]=0
+
+cadre[c]++
+
+})
+
+new Chart(document.getElementById("cadreChart"),{
+
+type:"bar",
+
+data:{
+labels:Object.keys(cadre),
+datasets:[{
+label:"Cadre Distribution",
+data:Object.values(cadre)
+}]
+}
+
+})
+
+}
+
+function display(list){
+
+let html=""
+
+list.forEach(row=>{
+
+html+=`
+
+<div class="postCard">
+
+<b>${row["Name of Post"]}</b><br>
+
+Status: ${row["Present Status"]}<br>
+Department: ${row["Name of Department"]}<br>
+Cadre: ${row["Cadre/Non-cadre"]}
+
+</div>
+
+`
+
+})
+
+document.getElementById("results").innerHTML=html
+
+}
+
+search.addEventListener("keyup",function(){
+
+let text=this.value.toLowerCase()
+
+let filtered=dataset.filter(r=>
+
+r["Name of Post"].toLowerCase().includes(text)
+
+)
+
+display(filtered)
+
+})
+
+</script>
+
+</body>
+
+</html>
